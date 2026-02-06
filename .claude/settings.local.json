@@ -12,7 +12,23 @@
       "Bash(ls:*)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(powershell:*)",
+      "Bash(dir specs /b)",
+      "Bash(test:*)",
+      "Bash(python:*)",
+      "Bash(poetry:*)",
+      "Bash(pip install:*)",
+      "Bash(bash .specify/scripts/bash/create-phr.sh --title \"Complete implementation tasks\" --stage \"green\" --feature \"002-full-stack-web-app\" --json)",
+      "Bash(npm install)",
+      "Bash(npm run dev)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8000)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(findstr :3000)",
+      "Bash(echo:*)",
+      "Bash(git --version)"
     ]
   }
 }

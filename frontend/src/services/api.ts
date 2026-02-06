@@ -13,9 +13,11 @@ const apiClient: AxiosInstance = axios.create({
 // Add request interceptor to include JWT token in headers
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth-token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth-token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -30,26 +32,27 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle specific error cases
-    if (error.response?.status === 401) {
-      // Token might be expired, redirect to login
-      localStorage.removeItem('auth-token');
-      window.location.href = '/login';
-    } else if (error.response?.status === 403) {
-      // Forbidden access - likely a security issue
-      console.error('Forbidden access:', error.response.data);
-      alert('Access forbidden. Please contact support if this persists.');
-    } else if (error.response?.status === 404) {
-      // Resource not found
-      console.error('Resource not found:', error.response.data);
-      alert('Requested resource not found.');
-    } else if (error.response?.status >= 500) {
-      // Server error
-      console.error('Server error:', error.response.data);
-      alert('Server error occurred. Please try again later.');
-    } else {
-      // Other error
-      console.error('API error:', error.message);
+    if (typeof window !== 'undefined') {
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        // Token might be expired, redirect to login
+        localStorage.removeItem('auth-token');
+        window.location.href = '/login';
+      } else if (error.response?.status === 403) {
+        // Forbidden access - likely a security issue
+        console.error('Forbidden access:', error.response.data);
+        alert('Access forbidden. Please contact support if this persists.');
+      } else if (error.response?.status === 404) {
+        // Resource not found
+        console.error('Resource not found:', error.response.data);
+      } else if (error.response?.status >= 500) {
+        // Server error
+        console.error('Server error:', error.response.data);
+        alert('Server error occurred. Please try again later.');
+      } else {
+        // Other error
+        console.error('API error:', error.message);
+      }
     }
 
     return Promise.reject(error);

@@ -3,13 +3,13 @@
  */
 
 import React, { useState } from 'react';
-import { setAuthToken, isAuthenticated } from '../services/auth';
+import { setAuthToken, isAuthenticated, createDemoToken } from '../services/auth';
 
 const LoginPage: React.FC = () => {
   // Redirect to dashboard if user is already authenticated
   if (isAuthenticated()) {
     typeof window !== 'undefined' && (window.location.href = '/dashboard');
-    return null; // Render nothing while redirecting
+    return null;
   }
 
   const [email, setEmail] = useState<string>('');
@@ -23,25 +23,24 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     try {
-      // In a real application, this would be an API call to your backend
-      // For now, we'll simulate a login with a mock token
-      // In the actual implementation, you would use Better Auth or your own auth system
+      // Validate inputs
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        setLoading(false);
+        return;
+      }
 
-      // Mock login - in real implementation, this would be replaced with actual auth
-      console.log('Login attempt with:', { email, password });
+      // Simulate API call delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // For demo purposes, we'll create a mock token
-      // In a real implementation, this would come from your auth provider
-      const mockToken = `mock.token.${email}.${Date.now()}`;
-      setAuthToken(mockToken);
+      // Create demo JWT token
+      const token = createDemoToken(email);
+      setAuthToken(token);
 
       // Redirect to dashboard
       window.location.href = '/dashboard';
     } catch (err) {
-      setError('Invalid email or password. Please try again.');
+      setError('Login failed. Please try again.');
       console.error('Login error:', err);
     } finally {
       setLoading(false);
@@ -49,18 +48,33 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your account
-        </h2>
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-indigo-600 mb-2">📝 Todo App</h1>
+          <h2 className="text-2xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Manage your tasks efficiently and securely
+          </p>
+        </div>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-4 shadow-xl rounded-lg sm:px-10 border border-gray-100">
           {error && (
-            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{error}</span>
+            <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded" role="alert">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -78,7 +92,8 @@ const LoginPage: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="you@example.com"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                 />
               </div>
             </div>
@@ -96,15 +111,16 @@ const LoginPage: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="••••••••"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="text-sm">
-                <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Don't have an account? Sign up
+                <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 transition">
+                  Don't have an account? <span className="underline">Sign up</span>
                 </a>
               </div>
             </div>
@@ -113,12 +129,36 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </div>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Demo Mode</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-center text-gray-500">
+              Enter any email and password to try the app
+            </p>
+          </div>
         </div>
       </div>
     </div>

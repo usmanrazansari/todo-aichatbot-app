@@ -50,7 +50,7 @@ def create_task(session: Session, task_data: TaskCreate, user_id: str) -> Task:
     Returns:
         Created Task object
     """
-    task = Task(**task_data.dict(), user_id=user_id)
+    task = Task(**task_data.model_dump(), user_id=user_id)
     session.add(task)
     session.commit()
     session.refresh(task)
@@ -76,7 +76,7 @@ def update_task(session: Session, task_id: str, user_id: str, task_data: TaskUpd
         return None
 
     # Prepare update data, excluding None values
-    update_data = task_data.dict(exclude_unset=True)
+    update_data = task_data.model_dump(exclude_unset=True)
 
     # Update the task
     for field, value in update_data.items():

@@ -144,9 +144,9 @@ def get_task(
 
 @router.put("/tasks/{id}", response_model=TaskPublic)
 def update_existing_task(
+    task_data: TaskUpdate,
     id: str = Path(..., description="The ID of the task to update"),
     user_id: str = Path(..., description="The ID of the user"),
-    task_data: TaskUpdate,
     current_user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):

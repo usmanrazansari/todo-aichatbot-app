@@ -48,11 +48,13 @@ def health_check():
 # Error handlers
 @app.exception_handler(404)
 async def not_found_error(request, exc):
+    from fastapi.responses import JSONResponse
     logger.warning(f"Not found error: {request.url}")
-    return {"message": "Resource not found"}
+    return JSONResponse(status_code=404, content={"message": "Resource not found"})
 
 
 @app.exception_handler(500)
 async def server_error(request, exc):
+    from fastapi.responses import JSONResponse
     logger.error(f"Server error: {str(exc)}")
-    return {"message": "Internal server error"}
+    return JSONResponse(status_code=500, content={"message": "Internal server error"})

@@ -15,7 +15,7 @@ class Task(TaskBase, table=True):
     Task model representing a todo item owned by a specific user.
     """
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    user_id: str = Field(foreign_key="user.id")
+    user_id: str = Field(index=True)  # Indexed for efficient queries, no FK since Better Auth manages users
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
