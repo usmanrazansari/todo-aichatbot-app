@@ -1,0 +1,16 @@
+[project]
+name = "todo-app"
+version = "0.1.0"
+description = "A basic in-memory console todo application"
+authors = [
+    { name = "Developer", email = "developer@example.com" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv]
+dev-dependencies = []
+
+[project.scripts]
+todo-app = "main:main"
