@@ -31,10 +31,14 @@ def on_startup():
     logger.info("Database tables created successfully")
 
 
-# Add CORS middleware for development
+# Configure CORS origins from environment variable
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+logger.info(f"CORS origins configured: {cors_origins}")
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=cors_origins,  # Configured via CORS_ORIGINS environment variable
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
