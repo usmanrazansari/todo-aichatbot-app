@@ -1,3 +1,7 @@
+# Load environment variables from .env file FIRST (before any imports that need them)
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api import task_routes, auth_routes, chat_routes

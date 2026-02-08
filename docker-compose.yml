@@ -1,0 +1,44 @@
+services:
+  backend:
+    image: todo-backend:latest
+    container_name: todo-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=sqlite:///./data/todo.db
+      - BETTER_AUTH_SECRET=supersecretkeyforbetterauth
+      - BETTER_AUTH_URL=http://localhost:3000
+      - OPENROUTER_API_KEY=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
+      - AI_MODEL=openai/gpt-4o-mini
+    volumes:
+      - backend-data:/app/data
+    networks:
+      - todo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: todo-frontend:latest
+    container_name: todo-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:8001
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - todo-network
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+    driver: local
+
+networks:
+  todo-network:
+    driver: bridge

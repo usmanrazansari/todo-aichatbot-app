@@ -2,21 +2,29 @@
  * Registration page for the Todo application
  */
 
-import React, { useState } from 'react';
-import { setAuthToken, isAuthenticated, createDemoToken } from '../services/auth';
+import React, { useState, useEffect } from 'react';
+import { setAuthToken, isAuthenticated } from '../services/auth';
 
 const RegisterPage: React.FC = () => {
-  // Redirect to dashboard if user is already authenticated
-  if (isAuthenticated()) {
-    typeof window !== 'undefined' && (window.location.href = '/dashboard');
-    return null;
-  }
-
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Redirect to dashboard if user is already authenticated
+    if (isAuthenticated()) {
+      window.location.href = '/dashboard';
+    }
+  }, []);
+
+  // Show loading during SSR to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +44,27 @@ const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Simulate API call delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Call backend register endpoint
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8001'}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Create demo JWT token
-      const token = createDemoToken(email);
-      setAuthToken(token);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Registration failed');
+      }
+
+      const data = await response.json();
+      setAuthToken(data.access_token);
 
       // Redirect to dashboard
       window.location.href = '/dashboard';
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.');
       console.error('Registration error:', err);
     } finally {
       setLoading(false);

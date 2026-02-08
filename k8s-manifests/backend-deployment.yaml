@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-backend
+  labels:
+    app: todo-chatbot
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-chatbot
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: todo-chatbot
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: todo-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              value: "sqlite:///./data/todo.db"
+            - name: BETTER_AUTH_SECRET
+              value: "supersecretkeyforbetterauth"
+            - name: BETTER_AUTH_URL
+              value: "http://localhost:30000"
+            - name: OPENROUTER_API_KEY
+              value: "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"
+            - name: AI_MODEL
+              value: "openai/gpt-4o-mini"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: backend-data
+              mountPath: /app/data
+      volumes:
+        - name: backend-data
+          emptyDir: {}

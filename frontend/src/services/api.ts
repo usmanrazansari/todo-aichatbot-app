@@ -6,7 +6,7 @@ import axios, { AxiosInstance } from 'axios';
 
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8001',
   timeout: 10000, // 10 seconds timeout
 });
 

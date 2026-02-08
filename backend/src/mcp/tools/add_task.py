@@ -74,12 +74,8 @@ ADD_TASK_SCHEMA = {
         "description": {
             "type": "string",
             "description": "Optional detailed description or notes about the task."
-        },
-        "user_id": {
-            "type": "string",
-            "description": "The ID of the user who owns this task."
         }
     },
-    "required": ["title", "user_id"],
+    "required": ["title"],
     "additionalProperties": False
 }

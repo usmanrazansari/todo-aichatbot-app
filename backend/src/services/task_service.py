@@ -75,8 +75,8 @@ def update_task(session: Session, task_id: str, user_id: str, task_data: TaskUpd
     if not existing_task:
         return None
 
-    # Prepare update data, excluding None values
-    update_data = task_data.model_dump(exclude_unset=True)
+    # Prepare update data, excluding None values to allow partial updates
+    update_data = task_data.model_dump(exclude_unset=True, exclude_none=True)
 
     # Update the task
     for field, value in update_data.items():

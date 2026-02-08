@@ -51,8 +51,8 @@ def update_task_tool(
             completed=completed
         )
 
-        # Update task using existing service
-        updated_task = update_task_service(session, task_id, update_data, user_id)
+        # Update task using existing service (correct parameter order)
+        updated_task = update_task_service(session, task_id, user_id, update_data)
 
         if not updated_task:
             return {
@@ -90,10 +90,6 @@ UPDATE_TASK_SCHEMA = {
             "type": "string",
             "description": "The ID of the task to update"
         },
-        "user_id": {
-            "type": "string",
-            "description": "The ID of the user who owns this task"
-        },
         "title": {
             "type": "string",
             "description": "New task title (optional)"
@@ -107,6 +103,6 @@ UPDATE_TASK_SCHEMA = {
             "description": "New completion status (optional)"
         }
     },
-    "required": ["task_id", "user_id"],
+    "required": ["task_id"],
     "additionalProperties": False
 }

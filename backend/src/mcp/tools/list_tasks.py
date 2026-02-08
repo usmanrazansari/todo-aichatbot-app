@@ -70,15 +70,11 @@ def list_tasks_tool(
 LIST_TASKS_SCHEMA = {
     "type": "object",
     "properties": {
-        "user_id": {
-            "type": "string",
-            "description": "The ID of the user whose tasks to retrieve."
-        },
         "completed": {
             "type": "boolean",
             "description": "Optional filter: true for completed tasks only, false for pending tasks only, omit for all tasks"
         }
     },
-    "required": ["user_id"],
+    "required": [],
     "additionalProperties": False
 }

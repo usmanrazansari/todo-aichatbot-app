@@ -16,6 +16,7 @@ import {
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import { sendMessage } from '../services/chatApi';
 import { ChatMessage } from '../types/chat';
+import { getAuthToken, getUserIdFromToken, isAuthenticated } from '../services/auth';
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -27,18 +28,23 @@ export default function ChatInterface() {
 
   // Load conversation ID from localStorage on mount
   useEffect(() => {
+    // Check authentication first
+    if (!isAuthenticated()) {
+      window.location.href = '/login';
+      return;
+    }
+
     const savedConversationId = localStorage.getItem('chat_conversation_id');
     if (savedConversationId) {
       setConversationId(savedConversationId);
     }
 
-    // Extract token and userId from auth context or localStorage
-    // This is a placeholder - actual implementation depends on auth setup
-    const savedToken = localStorage.getItem('auth_token');
-    const savedUserId = localStorage.getItem('user_id');
+    // Get token and userId from auth service
+    const authToken = getAuthToken();
+    const authUserId = getUserIdFromToken();
 
-    setToken(savedToken);
-    setUserId(savedUserId);
+    setToken(authToken);
+    setUserId(authUserId);
 
     // Add welcome message
     if (messages.length === 0) {

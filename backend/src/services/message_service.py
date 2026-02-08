@@ -134,6 +134,7 @@ def format_messages_for_openai(messages: List[Message]) -> List[dict]:
     Format messages for OpenAI API.
 
     Converts Message objects to OpenAI chat completion format.
+    Filters out tool-related messages to avoid API compatibility issues.
 
     Args:
         messages: List of Message objects
@@ -144,16 +145,19 @@ def format_messages_for_openai(messages: List[Message]) -> List[dict]:
     formatted_messages = []
 
     for msg in messages:
+        # Skip tool messages - they're not needed in conversation history
+        # and can cause API compatibility issues
+        if msg.role == "tool":
+            continue
+
+        # Skip assistant messages that were tool calls (content is None)
+        if msg.role == "assistant" and msg.content is None:
+            continue
+
         message_dict = {
             "role": msg.role,
             "content": msg.content
         }
-
-        # Add tool call metadata if present
-        if msg.tool_call_id:
-            message_dict["tool_call_id"] = msg.tool_call_id
-        if msg.tool_name:
-            message_dict["name"] = msg.tool_name
 
         formatted_messages.append(message_dict)
 

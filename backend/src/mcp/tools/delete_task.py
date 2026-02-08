@@ -72,12 +72,8 @@ DELETE_TASK_SCHEMA = {
         "task_id": {
             "type": "string",
             "description": "The ID of the task to delete"
-        },
-        "user_id": {
-            "type": "string",
-            "description": "The ID of the user who owns this task"
         }
     },
-    "required": ["task_id", "user_id"],
+    "required": ["task_id"],
     "additionalProperties": False
 }
