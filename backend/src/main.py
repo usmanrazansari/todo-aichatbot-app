@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.api import task_routes
+from src.api import task_routes, auth_routes, chat_routes
+from src.db.database import engine
+from src.models.task import Task
+from src.models.conversation import Conversation
+from src.models.message import Message
+from sqlmodel import SQLModel
 import os
 import logging
 
@@ -11,6 +16,15 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app instance
 app = FastAPI(title="Todo Application API", version="1.0.0")
+
+
+# Create database tables on startup
+@app.on_event("startup")
+def on_startup():
+    """Initialize database tables on application startup."""
+    logger.info("Creating database tables...")
+    SQLModel.metadata.create_all(engine)
+    logger.info("Database tables created successfully")
 
 
 # Add CORS middleware for development
@@ -24,7 +38,9 @@ app.add_middleware(
 
 
 # Include API routes
+app.include_router(auth_routes.router, prefix="/auth", tags=["authentication"])
 app.include_router(task_routes.router, prefix="/api/{user_id}", tags=["tasks"])
+app.include_router(chat_routes.router, prefix="/api/{user_id}", tags=["chat"])
 
 
 @app.get("/")

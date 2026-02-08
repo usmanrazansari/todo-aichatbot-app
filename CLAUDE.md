@@ -1,4 +1,4 @@
-# Claude Code Rules
+﻿# Claude Code Rules
 
 This file is generated during init for the selected agent.
 
@@ -208,3 +208,155 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+---
+
+## Phase III: AI-Powered Chatbot Implementation Context
+
+This section provides critical context for the AI-powered task management chatbot implemented in Phase III.
+
+### Architecture Overview
+
+**Stateless Backend with Conversation Persistence:**
+- AI agent (OpenAI GPT-4) is stateless - does not maintain conversation state
+- Conversation history is persisted in database (Conversation and Message models)
+- Each chat request reconstructs context by loading up to 50 messages or 30 days of history
+- Conversation ID is returned to frontend and persisted in localStorage for session continuity
+
+**Component Layers:**
+1. **Chat API Endpoint** (`backend/src/api/chat_routes.py`): Handles HTTP requests, authentication, conversation management
+2. **AI Agent** (`backend/src/ai/agent.py`): Orchestrates OpenAI API calls with function calling
+3. **MCP Server** (`backend/src/mcp/server.py`): Bridges AI agent to task management tools
+4. **MCP Tools** (`backend/src/mcp/tools/`): Individual task operations (add, list, update, complete, delete)
+5. **Task Service** (`backend/src/services/task_service.py`): Database operations for tasks
+
+### AI Agent Rules
+
+**System Prompt Constraints:**
+- Agent is a "helpful task management assistant" with conversational, friendly tone
+- Agent can ONLY manage tasks through provided MCP tools - no direct database access
+- Agent must confirm actions after completing them
+- Agent must ask for clarification when requests are ambiguous
+- Agent must handle errors gracefully with user-friendly messages (no technical details exposed)
+
+**Tool Invocation Pattern:**
+1. User sends message to chat endpoint
+2. Chat endpoint loads conversation history and calls AI agent
+3. AI agent receives: system prompt + conversation history + user message + tool schemas
+4. OpenAI API returns either direct response OR tool calls
+5. If tool calls: agent invokes MCP tools, then calls OpenAI again with tool results
+6. Final response is persisted and returned to user
+
+**Critical Implementation Details:**
+- `user_id` and `session` are injected into tool arguments by the agent (not provided by OpenAI)
+- Tool results are persisted as "tool" role messages for debugging/analytics
+- Conversation history is formatted for OpenAI API (role + content structure)
+
+### MCP (Model Context Protocol) Constraints
+
+**Manual Implementation:**
+- Official MCP SDK was not available, so a simplified MCP-style interface was implemented
+- MCP server maintains tool registry and converts schemas to OpenAI function calling format
+- Each tool has: name, description, JSON schema for parameters, and handler function
+
+**Tool Schema Requirements:**
+- Must be valid JSON Schema compatible with OpenAI function calling
+- Must include `user_id` parameter (for authorization)
+- Must return structured response: `{"success": bool, "data": any, "error": str}`
+- Must handle errors gracefully and return user-friendly error messages
+
+**Tool Registration:**
+- All tools are auto-registered on module import (`backend/src/mcp/server.py:194`)
+- Tools are exposed to AI agent via `mcp_server.get_tool_schemas()`
+- Tool invocation: `mcp_server.invoke_tool(tool_name, arguments)`
+
+**Available Tools:**
+1. `add_task`: Create new task with title and optional description
+2. `list_tasks`: Retrieve all tasks with optional completed filter
+3. `update_task`: Update task title, description, or completion status
+4. `complete_task`: Mark task as completed (ensures completed=True)
+5. `delete_task`: Permanently delete task with confirmation message
+
+### Conversation Persistence Rules
+
+**Conversation Lifecycle:**
+- New conversation: No conversation_id provided → create new conversation → return conversation_id
+- Resume conversation: conversation_id provided → load existing conversation → load history → continue
+- Conversation not found: Log warning, create new conversation (graceful degradation)
+
+**Message Persistence:**
+- User message persisted AFTER agent processing (to ensure conversation exists)
+- Assistant response persisted AFTER agent processing
+- Tool calls persisted as separate messages with role="tool"
+- All messages update conversation.updated_at timestamp
+
+**History Limits:**
+- Maximum 50 messages per conversation history load
+- Maximum 30 days of message history
+- Messages ordered chronologically (oldest first) for OpenAI API
+- Limits prevent context window overflow and improve performance
+
+### Frontend Integration
+
+**Authentication Flow:**
+- JWT token stored in localStorage as `auth_token`
+- User ID stored in localStorage as `user_id`
+- Token passed in Authorization header: `Bearer <token>`
+- User ID used in API path: `/api/{user_id}/chat`
+
+**Conversation Persistence:**
+- Conversation ID stored in localStorage as `chat_conversation_id`
+- Sent in request body as `conversation_id` (optional)
+- Updated when new conversation is created
+- "New Conversation" button clears localStorage and resets UI
+
+**Error Handling:**
+- 401 Unauthorized: Display "Please log in again" message
+- 403 Forbidden: Display "Access forbidden" message
+- 500 Server Error: Display "Server error - please try again later" message
+- Network errors: Display generic error message
+
+### Development Guidelines for Phase III
+
+**When Modifying AI Agent:**
+- Changes to system prompt affect ALL conversations - test thoroughly
+- Tool schema changes require updating both MCP tool and agent integration
+- Error handling must be user-friendly (no stack traces or technical jargon)
+
+**When Adding New Tools:**
+1. Create tool file in `backend/src/mcp/tools/`
+2. Define tool function with proper signature (user_id, session, tool-specific params)
+3. Define tool schema (JSON Schema format)
+4. Register tool in `backend/src/mcp/server.py:register_all_tools()`
+5. Update system prompt examples if needed
+
+**When Modifying Conversation Logic:**
+- Conversation history limits are performance-critical - do not remove
+- Message persistence order matters (user → assistant → tools)
+- Conversation timestamp updates are automatic via message_service
+
+**Testing Considerations:**
+- Test with empty conversation history (new user)
+- Test with 50+ message history (pagination/limits)
+- Test with invalid conversation_id (graceful degradation)
+- Test with expired JWT token (401 handling)
+- Test with ambiguous user input (clarification requests)
+- Test with tool failures (error message quality)
+
+### Security Considerations
+
+**Authorization:**
+- All chat endpoints verify JWT token via `get_current_user_id` dependency
+- User ID in path must match authenticated user (403 if mismatch)
+- Conversation and message queries enforce user ownership at database level
+
+**Data Isolation:**
+- Conversations are scoped to user_id (no cross-user access)
+- Messages are scoped to user_id (denormalized for security)
+- MCP tools verify task ownership before operations
+
+**Secrets Management:**
+- OpenAI API key stored in `.env` file (never committed)
+- JWT secret managed by Better Auth (not exposed to AI agent)
+- No sensitive data logged (tool results may contain task details)
+

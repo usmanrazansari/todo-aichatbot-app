@@ -1,0 +1,357 @@
+openapi: 3.0.3
+info:
+  title: Todo Application Chat API
+  description: |
+    AI-powered conversational interface for task management.
+
+    This API provides a stateless chat endpoint that accepts natural language
+    messages and returns AI-generated responses. The AI agent can invoke MCP
+    tools to perform task operations (add, list, update, complete, delete).
+
+    **Authentication**: All requests require a valid JWT token from Better Auth.
+
+    **Stateless Design**: The backend maintains no in-memory session state.
+    Conversation context is reconstructed from the database on each request.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: chat
+    description: Conversational AI chat endpoints
+
+paths:
+  /api/{user_id}/chat:
+    post:
+      tags:
+        - chat
+      summary: Send a chat message
+      description: |
+        Send a natural language message to the AI assistant. The assistant will
+        interpret the message, invoke appropriate MCP tools, and return a response.
+
+        **Conversation Management**:
+        - Omit `conversation_id` to start a new conversation
+        - Include `conversation_id` to continue an existing conversation
+
+        **Stateless Operation**:
+        - Conversation history is retrieved from database on each request
+        - No server-side session state is maintained
+
+        **Tool Invocation**:
+        - AI agent automatically invokes MCP tools based on user intent
+        - Tool calls and results are persisted in the database
+        - Tool metadata is returned in the response
+      operationId: sendChatMessage
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User ID (must match authenticated user from JWT token)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              newConversation:
+                summary: Start new conversation
+                value:
+                  message: "Add buy groceries to my tasks"
+              continueConversation:
+                summary: Continue existing conversation
+                value:
+                  message: "What's on my list?"
+                  conversation_id: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+      responses:
+        '200':
+          description: Successful response with AI-generated message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                taskCreated:
+                  summary: Task created successfully
+                  value:
+                    response: "I've added 'buy groceries' to your tasks!"
+                    conversation_id: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                    metadata:
+                      tool_calls:
+                        - tool_name: "add_task"
+                          tool_call_id: "call_abc123"
+                          result:
+                            success: true
+                            task_id: "550e8400-e29b-41d4-a716-446655440000"
+                tasksList:
+                  summary: Tasks listed
+                  value:
+                    response: "Here are your tasks:\n1. Buy groceries (pending)\n2. Finish report (pending)"
+                    conversation_id: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                    metadata:
+                      tool_calls:
+                        - tool_name: "list_tasks"
+                          tool_call_id: "call_def456"
+                          result:
+                            tasks:
+                              - id: "task1"
+                                title: "Buy groceries"
+                                completed: false
+                              - id: "task2"
+                                title: "Finish report"
+                                completed: false
+        '400':
+          description: Bad request (invalid input)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid request"
+                detail: "Message cannot be empty"
+        '401':
+          description: Unauthorized (missing or invalid JWT token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Unauthorized"
+                detail: "Could not validate credentials"
+        '403':
+          description: Forbidden (user_id mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Forbidden"
+                detail: "Access forbidden: user ID in path does not match authenticated user"
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Not found"
+                detail: "Conversation not found or access denied"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Internal server error"
+                detail: "AI service unavailable"
+
+  /api/{user_id}/conversations:
+    get:
+      tags:
+        - chat
+      summary: List user's conversations
+      description: |
+        Retrieve a list of all conversations for the authenticated user.
+        Conversations are ordered by most recently updated first.
+      operationId: listConversations
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: User ID (must match authenticated user from JWT token)
+          schema:
+            type: string
+            format: uuid
+        - name: include_archived
+          in: query
+          required: false
+          description: Include archived conversations
+          schema:
+            type: boolean
+            default: false
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+              example:
+                conversations:
+                  - id: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                    user_id: "550e8400-e29b-41d4-a716-446655440000"
+                    title: "Task management"
+                    created_at: "2026-02-08T10:00:00Z"
+                    updated_at: "2026-02-08T10:15:00Z"
+                    archived: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Better Auth
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: User's natural language message
+          minLength: 1
+          maxLength: 2000
+          example: "Add buy groceries to my tasks"
+        conversation_id:
+          type: string
+          format: uuid
+          description: |
+            Optional conversation ID to continue an existing conversation.
+            Omit to start a new conversation.
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+
+    ChatResponse:
+      type: object
+      required:
+        - response
+        - conversation_id
+      properties:
+        response:
+          type: string
+          description: AI-generated response message
+          example: "I've added 'buy groceries' to your tasks!"
+        conversation_id:
+          type: string
+          format: uuid
+          description: Conversation ID (new or existing)
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        metadata:
+          type: object
+          description: Optional metadata about tool invocations
+          properties:
+            tool_calls:
+              type: array
+              description: List of tools invoked during this request
+              items:
+                type: object
+                properties:
+                  tool_name:
+                    type: string
+                    description: Name of the tool that was called
+                    example: "add_task"
+                  tool_call_id:
+                    type: string
+                    description: OpenAI tool call ID
+                    example: "call_abc123"
+                  result:
+                    type: object
+                    description: Tool execution result (structure varies by tool)
+                    additionalProperties: true
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - user_id
+        - created_at
+        - updated_at
+        - archived
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique conversation identifier
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        user_id:
+          type: string
+          format: uuid
+          description: Owner of the conversation
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Optional conversation title
+          example: "Task management"
+        created_at:
+          type: string
+          format: date-time
+          description: When the conversation was created
+          example: "2026-02-08T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: When the conversation was last updated
+          example: "2026-02-08T10:15:00Z"
+        archived:
+          type: boolean
+          description: Whether the conversation is archived
+          example: false
+
+    Error:
+      type: object
+      required:
+        - error
+        - detail
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Bad request"
+        detail:
+          type: string
+          description: Detailed error message
+          example: "Message cannot be empty"
+
+  responses:
+    Unauthorized:
+      description: Unauthorized (missing or invalid JWT token)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+            detail: "Could not validate credentials"
+
+    Forbidden:
+      description: Forbidden (user_id mismatch)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Forbidden"
+            detail: "Access forbidden: user ID in path does not match authenticated user"
+
+security:
+  - BearerAuth: []

@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCP Tools for Todo Task Management",
+  "description": "Model Context Protocol (MCP) tool definitions for AI-powered task management. These tools enable an AI agent to perform CRUD operations on todo tasks through a stateless, tool-driven architecture.",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "add_task",
+      "description": "Add a new task to the user's todo list. Use this when the user wants to create a new task, add something to their list, or remember to do something.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The title or name of the task. Should be concise and descriptive.",
+            "minLength": 1,
+            "maxLength": 255,
+            "examples": [
+              "Buy groceries",
+              "Finish quarterly report",
+              "Call dentist for appointment"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional detailed description or notes about the task.",
+            "maxLength": 1000,
+            "examples": [
+              "Need milk, eggs, bread, and coffee",
+              "Include Q4 sales figures and projections for Q1",
+              ""
+            ]
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The ID of the user who owns this task. Must be provided by the backend.",
+            "format": "uuid",
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+          }
+        },
+        "required": ["title", "user_id"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the task was created successfully"
+          },
+          "task": {
+            "type": "object",
+            "description": "The created task object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Unique task identifier"
+              },
+              "title": {
+                "type": "string",
+                "description": "Task title"
+              },
+              "description": {
+                "type": "string",
+                "nullable": true,
+                "description": "Task description"
+              },
+              "completed": {
+                "type": "boolean",
+                "description": "Task completion status"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the task was created"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if success is false"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "list_tasks",
+      "description": "Retrieve all tasks for the user. Use this when the user wants to see their tasks, check what's on their list, or review their todos. Can optionally filter by completion status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "The ID of the user whose tasks to retrieve. Must be provided by the backend.",
+            "format": "uuid",
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Optional filter: true for completed tasks only, false for pending tasks only, omit for all tasks",
+            "examples": [true, false]
+          }
+        },
+        "required": ["user_id"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the query was successful"
+          },
+          "tasks": {
+            "type": "array",
+            "description": "List of tasks matching the criteria",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "completed": {
+                  "type": "boolean"
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updated_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer",
+            "description": "Total number of tasks returned"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if success is false"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "update_task",
+      "description": "Update an existing task's title, description, or completion status. Use this when the user wants to modify a task, change its details, or mark it as complete/incomplete.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The ID of the task to update",
+            "format": "uuid",
+            "examples": ["7c9e6679-7425-40de-944b-e07fc1f90ae7"]
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The ID of the user who owns this task. Must be provided by the backend for authorization.",
+            "format": "uuid",
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+          },
+          "title": {
+            "type": "string",
+            "description": "New task title (optional)",
+            "minLength": 1,
+            "maxLength": 255,
+            "examples": ["Buy organic groceries"]
+          },
+          "description": {
+            "type": "string",
+            "description": "New task description (optional)",
+            "maxLength": 1000,
+            "examples": ["Get milk, eggs, and whole grain bread from Whole Foods"]
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "New completion status (optional)",
+            "examples": [true, false]
+          }
+        },
+        "required": ["task_id", "user_id"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the task was updated successfully"
+          },
+          "task": {
+            "type": "object",
+            "description": "The updated task object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "completed": {
+                "type": "boolean"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if success is false (e.g., 'Task not found', 'Access denied')"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "complete_task",
+      "description": "Mark a task as completed. Use this when the user indicates they have finished a task, completed something, or are done with a todo item. This is a convenience wrapper around update_task.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The ID of the task to mark as completed",
+            "format": "uuid",
+            "examples": ["7c9e6679-7425-40de-944b-e07fc1f90ae7"]
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The ID of the user who owns this task. Must be provided by the backend for authorization.",
+            "format": "uuid",
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+          }
+        },
+        "required": ["task_id", "user_id"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the task was marked as completed successfully"
+          },
+          "task": {
+            "type": "object",
+            "description": "The updated task object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "completed": {
+                "type": "boolean",
+                "const": true
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if success is false"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "delete_task",
+      "description": "Permanently delete a task from the user's list. Use this when the user wants to remove a task, delete something from their list, or get rid of a todo item. This action cannot be undone.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The ID of the task to delete",
+            "format": "uuid",
+            "examples": ["7c9e6679-7425-40de-944b-e07fc1f90ae7"]
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The ID of the user who owns this task. Must be provided by the backend for authorization.",
+            "format": "uuid",
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+          }
+        },
+        "required": ["task_id", "user_id"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the task was deleted successfully"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "examples": ["Task deleted successfully"]
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if success is false"
+          }
+        },
+        "required": ["success"]
+      }
+    }
+  ],
+  "metadata": {
+    "author": "Todo Application Team",
+    "created": "2026-02-08",
+    "notes": [
+      "All tools require user_id for authorization",
+      "Tools enforce user ownership - users can only access their own tasks",
+      "Tools return structured responses with success flag and optional error message",
+      "Task IDs are UUIDs generated by the backend",
+      "All tools are stateless and idempotent where applicable"
+    ],
+    "usage_guidelines": {
+      "intent_mapping": {
+        "create": "Use add_task when user wants to create, add, or remember something",
+        "read": "Use list_tasks when user wants to see, view, or check their tasks",
+        "update": "Use update_task when user wants to modify, change, or edit task details",
+        "complete": "Use complete_task when user indicates they finished or completed a task",
+        "delete": "Use delete_task when user wants to remove, delete, or get rid of a task"
+      },
+      "error_handling": {
+        "task_not_found": "Inform user the task doesn't exist and offer to list their tasks",
+        "access_denied": "Inform user they don't have permission (should not happen in normal flow)",
+        "validation_error": "Explain what was invalid and ask for clarification",
+        "service_error": "Apologize and suggest trying again or contacting support"
+      },
+      "conversational_patterns": {
+        "ambiguous_reference": "If user says 'complete the task' but multiple tasks exist, ask which one",
+        "confirmation": "After successful operations, confirm what was done with task details",
+        "friendly_tone": "Use natural, conversational language in responses"
+      }
+    }
+  }
+}

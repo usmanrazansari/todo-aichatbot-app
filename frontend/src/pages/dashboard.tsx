@@ -16,24 +16,34 @@ const DashboardPage: React.FC = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [mounted, setMounted] = useState<boolean>(false);
 
-  const userId = getUserIdFromToken();
-  const userEmail = getUserEmailFromToken();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check authentication on client side
-    if (typeof window !== 'undefined' && !isAuthenticated()) {
+    // Mark as mounted to prevent hydration mismatch
+    setMounted(true);
+
+    // Check authentication on client side only
+    if (!isAuthenticated()) {
       window.location.href = '/login';
       return;
     }
 
-    if (userId) {
+    const uid = getUserIdFromToken();
+    const email = getUserEmailFromToken();
+    setUserId(uid);
+    setUserEmail(email);
+
+    if (uid) {
       fetchTasks();
     }
-  }, [userId]);
+  }, []);
 
   const fetchTasks = async () => {
-    if (!userId) {
+    const currentUserId = getUserIdFromToken();
+    if (!currentUserId) {
       setError('User not authenticated');
       setLoading(false);
       return;
@@ -41,7 +51,7 @@ const DashboardPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/${userId}/tasks`);
+      const response = await apiClient.get(`/api/${currentUserId}/tasks`);
       setTasks(response.data);
       setError(null);
     } catch (error) {
@@ -87,24 +97,16 @@ const DashboardPage: React.FC = () => {
     completed: tasks.filter(t => t.completed).length
   };
 
-  if (!userId) {
+  // Show loading state during SSR and initial client render
+  if (!mounted || !userId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg max-w-md">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Authentication Error</h3>
-              <p className="mt-2 text-sm text-red-700">Please log in to access your tasks.</p>
-              <a href="/login" className="mt-3 inline-block text-sm font-medium text-red-800 underline">
-                Go to Login →
-              </a>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <svg className="animate-spin h-12 w-12 mx-auto text-indigo-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -123,15 +125,26 @@ const DashboardPage: React.FC = () => {
                 <p className="text-sm text-gray-500">{userEmail}</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => window.location.href = '/chat'}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Chat Assistant
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
